@@ -216,6 +216,33 @@ select {
   gap: 4px;
 }
 
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d4dbe5;
+  border-radius: 8px;
+  background: #f4f7fa;
+  padding: 10px;
+}
+
+.check-row input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: #111722;
+}
+
+.check-row span {
+  display: grid;
+  gap: 2px;
+  color: #222b38;
+}
+
+.check-row small {
+  color: #69717d;
+  font-weight: 800;
+}
+
 .style-toggle button,
 .mode-grid button {
   border: 0;
@@ -344,6 +371,10 @@ input[type="range"] {
   padding: 18px;
 }
 
+.combo-card.unverified {
+  background: rgba(255, 250, 235, 0.94);
+}
+
 .combo-card::before {
   content: "";
   display: block;
@@ -370,6 +401,11 @@ input[type="range"] {
 .badge.good {
   background: #e2f7ff;
   color: #086b87;
+}
+
+.badge.warn {
+  background: #fff3d9;
+  color: #8a5a00;
 }
 
 .difficulty {

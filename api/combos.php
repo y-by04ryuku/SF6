@@ -55,6 +55,7 @@ try {
                 drive,
                 super_art AS superArt,
                 difficulty,
+                is_verified AS isVerified,
                 notes
              FROM combos
              ORDER BY character_id, starter, situation, id'
@@ -84,6 +85,7 @@ try {
         $combo['drive'] = (int) $combo['drive'];
         $combo['superArt'] = (int) $combo['superArt'];
         $combo['difficulty'] = (int) $combo['difficulty'];
+        $combo['isVerified'] = (bool) $combo['isVerified'];
         $combo['route'] = $routes[$combo['id']] ?? [];
         $combo['tags'] = $tags[$combo['id']] ?? [];
 

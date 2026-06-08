@@ -9,6 +9,7 @@ import {
   Keyboard,
   ListFilter,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Swords,
@@ -19,8 +20,6 @@ import './styles.css';
 
 const defaultData = {
   characters: [],
-  starters: [],
-  situations: [],
   combos: []
 };
 
@@ -45,7 +44,8 @@ function getDamageNote(combo, controlStyle) {
 function scoreCombo(combo, controlStyle) {
   const gaugePenalty = combo.drive * 230 + combo.superArt * 360;
   const difficultyPenalty = combo.difficulty * 90;
-  return getComboDamage(combo, controlStyle) - gaugePenalty - difficultyPenalty;
+  const verifiedBonus = combo.isVerified ? 180 : -900;
+  return getComboDamage(combo, controlStyle) - gaugePenalty - difficultyPenalty + verifiedBonus;
 }
 
 function uniqueValues(values) {
@@ -53,6 +53,7 @@ function uniqueValues(values) {
 }
 
 function labelFor(combo, maxDamageId, bestValueId) {
+  if (!combo.isVerified) return '未検証';
   if (combo.id === maxDamageId) return '最大ダメージ';
   if (combo.id === bestValueId) return 'バランス良';
   if (combo.drive === 0 && combo.superArt === 0) return '省ゲージ';
@@ -63,7 +64,8 @@ function normalizeCombo(combo) {
   return {
     ...combo,
     damageClassic: combo.damageClassic ?? combo.damage ?? 0,
-    damageModern: combo.damageModern ?? null
+    damageModern: combo.damageModern ?? null,
+    isVerified: combo.isVerified !== false
   };
 }
 
@@ -77,6 +79,7 @@ function App() {
   const [maxSuper, setMaxSuper] = useState(3);
   const [mode, setMode] = useState('balanced');
   const [query, setQuery] = useState('');
+  const [showUnverified, setShowUnverified] = useState(false);
 
   useEffect(() => {
     fetch('/api/combos.php')
@@ -96,9 +99,14 @@ function App() {
       });
   }, []);
 
+  const visibleCombos = useMemo(
+    () => data.combos.filter((combo) => showUnverified || combo.isVerified),
+    [data.combos, showUnverified]
+  );
+
   const characterCombos = useMemo(
-    () => data.combos.filter((combo) => combo.character === character),
-    [character, data.combos]
+    () => visibleCombos.filter((combo) => combo.character === character),
+    [character, visibleCombos]
   );
 
   const starters = useMemo(
@@ -165,19 +173,20 @@ function App() {
   );
   const selectedCharacter = data.characters.find((item) => item.id === character);
   const hasCharacterData = characterCombos.length > 0;
+  const unverifiedCount = data.combos.filter((combo) => combo.character === character && !combo.isVerified).length;
 
   return (
     <main className="app-shell">
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">Street Fighter 6 Combo Lab</p>
-          <h1>始動から、今いちばん使うべきコンボへ。</h1>
+          <h1>始動から、信頼できるコンボ候補へ。</h1>
           <p>
-            キャラ、入力方式、始動技、状況を選ぶだけで、最大火力とゲージ効率の良いルートを見比べられます。
+            標準では検証済みルートだけを表示します。未検証データは分離して、実測後に差し替えられるようにしています。
           </p>
         </div>
         <div className="hero-panel">
-          <span><ShieldCheck size={18} /> 全キャラ枠対応</span>
+          <span><ShieldCheck size={18} /> 検証済み優先</span>
           <strong>{data.characters.length || '-'} fighters</strong>
         </div>
       </section>
@@ -211,6 +220,14 @@ function App() {
               モダン
             </button>
           </div>
+
+          <label className="check-row">
+            <input type="checkbox" checked={showUnverified} onChange={(event) => setShowUnverified(event.target.checked)} />
+            <span>
+              未検証も表示
+              <small>{selectedCharacter?.name || ''}の未検証 {unverifiedCount}件</small>
+            </span>
+          </label>
 
           <label>
             始動技
@@ -287,8 +304,8 @@ function App() {
           {filtered.length === 0 ? (
             <div className="empty-state">
               <Activity size={34} />
-              <h3>この条件のコンボはまだありません</h3>
-              <p>選択中のキャラに登録された始動技と状況だけが候補になります。JSONに追加すると自動で表示されます。</p>
+              <h3>この条件の検証済みコンボはありません</h3>
+              <p>未検証ルートを確認する場合は左の「未検証も表示」をオンにしてください。実測済みコンボを追加すると標準表示に入ります。</p>
             </div>
           ) : (
             <div className="combo-list">
@@ -298,9 +315,10 @@ function App() {
                 const modernDamage = getComboDamage(combo, 'modern');
 
                 return (
-                  <article className="combo-card" key={combo.id}>
+                  <article className={`combo-card ${combo.isVerified ? '' : 'unverified'}`} key={combo.id}>
                     <div className="combo-card-head">
-                      <span className={`badge ${combo.id === maxDamage?.id ? 'hot' : combo.id === bestValue?.id ? 'good' : ''}`}>
+                      <span className={`badge ${!combo.isVerified ? 'warn' : combo.id === maxDamage?.id ? 'hot' : combo.id === bestValue?.id ? 'good' : ''}`}>
+                        {combo.isVerified ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
                         {labelFor(combo, maxDamage?.id, bestValue?.id)}
                       </span>
                       <span className="difficulty">難度 {combo.difficulty}/5</span>
